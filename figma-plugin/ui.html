@@ -276,6 +276,58 @@
             color: #6c7086;
             margin-top: 6px;
         }
+
+        /* Font size settings */
+        .font-settings {
+            margin-bottom: 12px;
+            background: #181825;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .font-settings-title {
+            font-size: 11px;
+            color: #6c7086;
+            margin-bottom: 10px;
+        }
+
+        .font-settings-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .font-settings-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .font-setting-item {
+            flex: 1;
+        }
+
+        .font-setting-item label {
+            display: block;
+            font-size: 10px;
+            color: #6c7086;
+            margin-bottom: 4px;
+        }
+
+        .font-setting-item input {
+            width: 100%;
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 4px;
+            color: #cdd6f4;
+            padding: 6px 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .font-setting-item input:focus {
+            outline: none;
+            border-color: #89b4fa;
+        }
     </style>
 </head>
 
@@ -295,6 +347,35 @@
         </select>
         <div class="theme-preview" id="themePreview"></div>
         <div class="theme-preview-name" id="themePreviewName"></div>
+    </div>
+
+    <!-- Font Size Settings -->
+    <div class="font-settings">
+        <div class="font-settings-title">📏 폰트 크기 설정</div>
+        <div class="font-settings-row">
+            <div class="font-setting-item">
+                <label>제목 (커버/엔딩)</label>
+                <input type="number" id="fontTitleCover" value="72" min="20" max="120" />
+            </div>
+            <div class="font-setting-item">
+                <label>제목 (일반)</label>
+                <input type="number" id="fontTitleNormal" value="54" min="20" max="120" />
+            </div>
+        </div>
+        <div class="font-settings-row">
+            <div class="font-setting-item">
+                <label>부제목</label>
+                <input type="number" id="fontSubtitle" value="36" min="12" max="80" />
+            </div>
+            <div class="font-setting-item">
+                <label>본문</label>
+                <input type="number" id="fontBody" value="24" min="12" max="60" />
+            </div>
+            <div class="font-setting-item">
+                <label>리스트</label>
+                <input type="number" id="fontList" value="26" min="12" max="60" />
+            </div>
+        </div>
     </div>
 
     <!-- Tab Switcher -->
@@ -494,13 +575,22 @@
             const selectedTheme = document.getElementById('themeSelect').value;
             addLog(`🎨 슬라이드 ${currentIndex + 1}/${totalSlides} 생성 중... (${THEME_PREVIEWS[selectedTheme]?.name || selectedTheme})`, 'info');
 
+            const fontSizes = {
+                titleCover: parseInt(document.getElementById('fontTitleCover').value) || 72,
+                titleNormal: parseInt(document.getElementById('fontTitleNormal').value) || 54,
+                subtitle: parseInt(document.getElementById('fontSubtitle').value) || 36,
+                body: parseInt(document.getElementById('fontBody').value) || 24,
+                list: parseInt(document.getElementById('fontList').value) || 26
+            };
+
             parent.postMessage({
                 pluginMessage: {
                     type: 'import-slide',
                     index: currentIndex,
                     total: totalSlides,
                     slideData: slideData,
-                    theme: selectedTheme
+                    theme: selectedTheme,
+                    fontSizes: fontSizes
                 }
             }, '*');
         }

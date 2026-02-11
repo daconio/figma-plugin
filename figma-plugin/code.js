@@ -164,6 +164,15 @@ const COLORS = THEMES[DEFAULT_THEME].colors;
 const SLIDE_W = 1920;
 const SLIDE_H = 1080;
 
+// ─── Font Size Settings (can be overridden by UI) ─────────────
+let fontSizes = {
+    titleCover: 72,
+    titleNormal: 54,
+    subtitle: 36,
+    body: 24,
+    list: 26
+};
+
 // ─── Detect editor type once ──────────────────────────────────
 let isSlides = false;
 try { isSlides = (figma.editorType === "slides"); } catch (_) { }
@@ -384,13 +393,13 @@ function processTokens(tokens, frame, idx, total) {
         var tk = tokens[i];
 
         if (tk.type === "heading") {
-            var fs = tk.depth === 1 ? (isCover || isEnding ? 72 : 54) : 36;
+            var fs = tk.depth === 1 ? (isCover || isEnding ? fontSizes.titleCover : fontSizes.titleNormal) : fontSizes.subtitle;
             var col = tk.depth === 1 ? colors.accent2 : colors.subtitle;
             createRichText(tk.text || "", fs, true, col, frame);
 
         } else if (tk.type === "paragraph") {
             if (tk.text) {
-                createRichText(tk.text, 24, false, colors.bodyText, frame);
+                createRichText(tk.text, fontSizes.body, false, colors.bodyText, frame);
             }
 
         } else if (tk.type === "list") {
@@ -433,7 +442,7 @@ function processTokens(tokens, frame, idx, total) {
                     iFrame.appendChild(bWrap);
 
                     // Text
-                    createRichText(item.text || "", 26, false, colors.bodyText, iFrame);
+                    createRichText(item.text || "", fontSizes.list, false, colors.bodyText, iFrame);
                     lf.appendChild(iFrame);
                 }
             }
@@ -539,6 +548,17 @@ figma.ui.onmessage = async function (msg) {
                 currentTheme = THEMES[msg.theme];
             } else {
                 currentTheme = THEMES[DEFAULT_THEME];
+            }
+
+            // Apply font sizes if provided
+            if (msg.fontSizes) {
+                fontSizes = {
+                    titleCover: msg.fontSizes.titleCover || 72,
+                    titleNormal: msg.fontSizes.titleNormal || 54,
+                    subtitle: msg.fontSizes.subtitle || 36,
+                    body: msg.fontSizes.body || 24,
+                    list: msg.fontSizes.list || 26
+                };
             }
 
             await loadFonts();
