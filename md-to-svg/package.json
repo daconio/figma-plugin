@@ -1,0 +1,13 @@
+{
+    "name": "md-to-svg",
+    "version": "1.0.0",
+    "description": "Convert Markdown slides to SVG files for Figma import",
+    "main": "convert.js",
+    "scripts": {
+        "convert": "node convert.js ../daker_presentation_content.md"
+    },
+    "dependencies": {
+        "marked": "^15.0.0",
+        "puppeteer": "^24.0.0"
+    }
+}

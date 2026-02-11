@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- marked.js for local Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.0/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 16px;
+            min-height: 100%;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #89b4fa, #cba6f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 11px;
+            color: #6c7086;
+            margin-bottom: 12px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #313244;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #181825;
+            color: #6c7086;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #313244;
+            color: #cdd6f4;
+        }
+
+        .tab:hover:not(.active) {
+            background: #1e1e2e;
+        }
+
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Server URL */
+        .server-url {
+            background: #181825;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .server-url label {
+            font-size: 11px;
+            color: #6c7086;
+            white-space: nowrap;
+        }
+
+        .server-url input {
+            flex: 1;
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 4px;
+            color: #cdd6f4;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* Markdown textarea */
+        .md-input {
+            width: 100%;
+            height: 200px;
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            color: #cdd6f4;
+            padding: 12px;
+            font-size: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+            line-height: 1.6;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+
+        .md-input::placeholder {
+            color: #45475a;
+        }
+
+        .md-input:focus {
+            outline: none;
+            border-color: #89b4fa;
+        }
+
+        .hint {
+            font-size: 10px;
+            color: #45475a;
+            margin-bottom: 8px;
+        }
+
+        /* Buttons */
+        .import-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #89b4fa, #74c7ec);
+            color: #1e1e2e;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .import-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .import-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Progress */
+        .progress-section {
+            background: #181825;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #313244;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #89b4fa, #cba6f7);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 3px;
+        }
+
+        .log {
+            font-size: 10px;
+            font-family: monospace;
+            color: #a6adc8;
+            max-height: 100px;
+            overflow-y: auto;
+            line-height: 1.8;
+        }
+
+        .log .success {
+            color: #a6e3a1;
+        }
+
+        .log .error {
+            color: #f38ba8;
+        }
+
+        .log .info {
+            color: #89b4fa;
+        }
+
+        .done-msg {
+            text-align: center;
+            padding: 12px;
+            background: #181825;
+            border: 1px solid #a6e3a1;
+            border-radius: 8px;
+            color: #a6e3a1;
+            font-weight: 600;
+            display: none;
+            margin-top: 8px;
+        }
+
+        /* Theme selector */
+        .theme-selector {
+            margin-bottom: 12px;
+            background: #181825;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .theme-selector label {
+            display: block;
+            font-size: 11px;
+            color: #6c7086;
+            margin-bottom: 8px;
+        }
+
+        .theme-select {
+            width: 100%;
+            background: #11111b;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            color: #cdd6f4;
+            padding: 10px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c7086' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+
+        .theme-select:focus {
+            outline: none;
+            border-color: #89b4fa;
+        }
+
+        .theme-preview {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .theme-preview-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #313244;
+        }
+
+        .theme-preview-name {
+            font-size: 10px;
+            color: #6c7086;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚀 DAKER Markdown Slide Creator</h1>
+    <p class="subtitle">마크다운을 편집 가능한 Figma Slide로 자동 생성합니다</p>
+
+    <!-- Theme Selector -->
+    <div class="theme-selector">
+        <label>🎨 테마 선택:</label>
+        <select class="theme-select" id="themeSelect" onchange="updateThemePreview()">
+            <option value="clean-white">Clean White (기본)</option>
+            <option value="daker-dark">DAKER Dark</option>
+            <option value="daker-light">DAKER Light</option>
+            <option value="corporate-blue">Corporate Blue</option>
+            <option value="minimal">Minimal</option>
+        </select>
+        <div class="theme-preview" id="themePreview"></div>
+        <div class="theme-preview-name" id="themePreviewName"></div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('paste')">📝 직접 입력</button>
+        <button class="tab" onclick="switchTab('server')">🌐 서버 연동</button>
+    </div>
+
+    <!-- Tab 1: Direct Paste -->
+    <div class="tab-content active" id="tab-paste">
+        <textarea class="md-input" id="mdInput" placeholder="마크다운을 여기에 붙여넣으세요...
+
+# 슬라이드 제목
+
+**강조 텍스트**
+
+- 항목 1
+- 항목 2
+
+---
+
+# 두 번째 슬라이드
+
+내용을 입력하세요..."></textarea>
+        <p class="hint">💡 슬라이드 구분: --- (수평선) 사용</p>
+    </div>
+
+    <!-- Tab 2: Server -->
+    <div class="tab-content" id="tab-server">
+        <div class="server-url">
+            <label>서버 URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:9876" />
+        </div>
+    </div>
+
+    <button class="import-btn" id="importBtn" onclick="startImport()">
+        📥 슬라이드 생성
+    </button>
+
+    <div class="progress-section" id="progressSection">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="log" id="log"></div>
+    </div>
+
+    <div class="done-msg" id="doneMsg"></div>
+
+    <script>
+        const IMPORT_BTN = document.getElementById('importBtn');
+        const PROGRESS_SECTION = document.getElementById('progressSection');
+        const PROGRESS_FILL = document.getElementById('progressFill');
+        const LOG = document.getElementById('log');
+        const DONE_MSG = document.getElementById('doneMsg');
+
+        let slideQueue = [];
+        let currentIndex = 0;
+        let totalSlides = 0;
+        let currentMode = 'paste'; // 'paste' or 'server'
+
+        // Theme preview colors (matching code.js themes)
+        const THEME_PREVIEWS = {
+            'clean-white': {
+                name: 'Clean White - 깔끔한 흰 배경 (Pretendard)',
+                colors: ['#ffffff', '#3C7CDE', '#333333', '#666666']
+            },
+            'daker-dark': {
+                name: 'DAKER Dark - 어두운 보라색 그라데이션',
+                colors: ['#0f0c29', '#818cf8', '#c084f5', '#f472b6']
+            },
+            'daker-light': {
+                name: 'DAKER Light - 밝은 배경',
+                colors: ['#f5f5fa', '#6673d9', '#9966cc', '#d95999']
+            },
+            'corporate-blue': {
+                name: 'Corporate Blue - 비즈니스 블루',
+                colors: ['#1c2638', '#3380e6', '#4d99f2', '#66b3ff']
+            },
+            'minimal': {
+                name: 'Minimal - 깔끔한 흰 배경',
+                colors: ['#ffffff', '#1a1a1a', '#333333', '#666666']
+            }
+        };
+
+        function updateThemePreview() {
+            const themeId = document.getElementById('themeSelect').value;
+            const theme = THEME_PREVIEWS[themeId] || THEME_PREVIEWS['daker-dark'];
+            const container = document.getElementById('themePreview');
+            const nameEl = document.getElementById('themePreviewName');
+
+            container.innerHTML = theme.colors.map(c =>
+                `<div class="theme-preview-swatch" style="background: ${c}"></div>`
+            ).join('');
+            nameEl.textContent = theme.name;
+        }
+
+        // Initialize theme preview on load
+        updateThemePreview();
+
+        function switchTab(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            if (mode === 'paste') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('tab-paste').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('tab-server').classList.add('active');
+            }
+        }
+
+        function addLog(text, type = '') {
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = text;
+            LOG.appendChild(line);
+            LOG.scrollTop = LOG.scrollHeight;
+        }
+
+        // Parse markdown locally using marked.lexer
+        function parseMarkdownLocally(mdText) {
+            const slideTexts = mdText.split(/\n---\n/).map(s => s.trim()).filter(Boolean);
+            return slideTexts.map((text, index) => {
+                const tokens = marked.lexer(text);
+                return {
+                    index: index + 1,
+                    markdown: text,
+                    tokens: tokens
+                };
+            });
+        }
+
+        async function startImport() {
+            IMPORT_BTN.disabled = true;
+            IMPORT_BTN.textContent = '⏳ 처리 중...';
+            PROGRESS_SECTION.style.display = 'block';
+            DONE_MSG.style.display = 'none';
+            LOG.innerHTML = '';
+            PROGRESS_FILL.style.width = '0%';
+
+            try {
+                let slides;
+
+                if (currentMode === 'paste') {
+                    // LOCAL MODE: Parse markdown from textarea
+                    const mdText = document.getElementById('mdInput').value.trim();
+                    if (!mdText) throw new Error('마크다운을 입력해주세요.');
+
+                    addLog('📝 마크다운 파싱 중...', 'info');
+                    slides = parseMarkdownLocally(mdText);
+                    addLog(`✅ ${slides.length}개 슬라이드 감지`, 'success');
+
+                } else {
+                    // SERVER MODE: Fetch from server
+                    const serverUrl = document.getElementById('serverUrl').value.replace(/\/$/, '');
+                    addLog('📋 서버에서 데이터 가져오는 중...', 'info');
+                    const resp = await fetch(`${serverUrl}/api/data`);
+                    if (!resp.ok) throw new Error(`서버 연결 실패 (${resp.status})`);
+                    const data = await resp.json();
+                    slides = data.slides;
+                    addLog(`✅ ${data.total}개 슬라이드 수신 완료`, 'success');
+                }
+
+                if (!slides || slides.length === 0) {
+                    throw new Error('슬라이드 데이터가 없습니다.');
+                }
+
+                totalSlides = slides.length;
+                slideQueue = slides;
+                currentIndex = 0;
+
+                addLog(`🎨 Figma에 슬라이드 생성 시작...`, 'info');
+                IMPORT_BTN.textContent = '🎨 슬라이드 생성 중...';
+                sendNextSlide();
+
+            } catch (err) {
+                addLog(`❌ 오류: ${err.message}`, 'error');
+                if (currentMode === 'server') {
+                    addLog('💡 서버가 실행 중인지 확인하세요: node server.js', 'info');
+                }
+                IMPORT_BTN.disabled = false;
+                IMPORT_BTN.textContent = '📥 슬라이드 생성';
+            }
+        }
+
+        function sendNextSlide() {
+            if (currentIndex >= slideQueue.length) {
+                parent.postMessage({
+                    pluginMessage: { type: 'all-done', count: totalSlides }
+                }, '*');
+                return;
+            }
+
+            const slideData = slideQueue[currentIndex];
+            const selectedTheme = document.getElementById('themeSelect').value;
+            addLog(`🎨 슬라이드 ${currentIndex + 1}/${totalSlides} 생성 중... (${THEME_PREVIEWS[selectedTheme]?.name || selectedTheme})`, 'info');
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'import-slide',
+                    index: currentIndex,
+                    total: totalSlides,
+                    slideData: slideData,
+                    theme: selectedTheme
+                }
+            }, '*');
+        }
+
+        // Listen for messages from plugin code
+        window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+            if (!msg) return;
+
+            if (msg.type === 'progress') {
+                const pct = (msg.current / msg.total) * 100;
+                PROGRESS_FILL.style.width = `${pct}%`;
+                addLog(`✅ 슬라이드 ${msg.current}/${msg.total} 생성 완료`, 'success');
+                currentIndex++;
+                setTimeout(() => sendNextSlide(), 150);
+            }
+
+            if (msg.type === 'error') {
+                addLog(`❌ 슬라이드 ${msg.slide} 오류: ${msg.message}`, 'error');
+                currentIndex++;
+                setTimeout(() => sendNextSlide(), 150);
+            }
+
+            if (msg.type === 'done') {
+                DONE_MSG.style.display = 'block';
+                DONE_MSG.textContent = `🎉 ${msg.count}개 슬라이드가 Figma에 생성되었습니다!`;
+                IMPORT_BTN.disabled = false;
+                IMPORT_BTN.textContent = '📥 다시 생성';
+                PROGRESS_FILL.style.width = '100%';
+            }
+        };
+    </script>
+</body>
+
+</html>

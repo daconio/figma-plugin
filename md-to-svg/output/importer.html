@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAKER SVG → Figma Importer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0e0e10;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 40px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: #888;
+    font-size: 14px;
+  }
+
+  .instructions {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 32px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .instructions h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c084fc;
+    margin-bottom: 12px;
+  }
+
+  .instructions ol {
+    padding-left: 20px;
+    line-height: 2;
+    font-size: 14px;
+    color: #aaa;
+  }
+
+  .instructions strong { color: #e0e0e0; }
+  .instructions kbd {
+    background: #2a2a4a;
+    border: 1px solid #3a3a5a;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #c084fc;
+  }
+
+  .slides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .slide-card {
+    background: #16161a;
+    border: 1px solid #2a2a3a;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .slide-card:hover {
+    border-color: #818cf8;
+    box-shadow: 0 4px 20px rgba(129, 140, 248, 0.1);
+  }
+
+  .slide-card.copied {
+    border-color: #34d399;
+    box-shadow: 0 4px 20px rgba(52, 211, 153, 0.15);
+  }
+
+  .slide-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #0f0c29;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .slide-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .slide-info {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .slide-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #aaa;
+  }
+
+  .slide-label span {
+    color: #818cf8;
+    font-weight: 600;
+  }
+
+  .copy-btn {
+    background: linear-gradient(135deg, #818cf8, #6366f1);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .copy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .copy-btn:active {
+    transform: translateY(0);
+  }
+
+  .copy-btn.success {
+    background: linear-gradient(135deg, #34d399, #059669);
+  }
+
+  .copy-all-section {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .copy-all-btn {
+    background: linear-gradient(135deg, #f472b6, #ec4899);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .copy-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(236, 72, 153, 0.3);
+  }
+
+  .progress-bar {
+    max-width: 400px;
+    margin: 16px auto 0;
+    height: 4px;
+    background: #2a2a4a;
+    border-radius: 2px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #818cf8, #c084fc);
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 2px;
+  }
+
+  .status-text {
+    font-size: 13px;
+    color: #888;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎨 DAKER SVG → Figma Importer</h1>
+    <p>12개의 SVG 슬라이드를 Figma에 붙여넣기</p>
+  </div>
+
+  <div class="instructions">
+    <h2>📋 사용 방법</h2>
+    <ol>
+      <li><strong>Figma</strong>에서 새 디자인 파일을 열어주세요</li>
+      <li>아래에서 <strong>"Copy SVG"</strong> 버튼을 클릭하세요</li>
+      <li>Figma 캔버스를 클릭하고 <kbd>⌘V</kbd> (붙여넣기) 하세요</li>
+      <li>슬라이드가 Figma에 벡터 요소로 삽입됩니다!</li>
+      <li>12장 모두 반복하거나, <strong>"모두 복사/붙여넣기"</strong> 버튼을 사용하세요</li>
+    </ol>
+  </div>
+
+  <div class="copy-all-section">
+    <button class="copy-all-btn" onclick="copyAllSequentially()">
+      🚀 순서대로 모두 복사/붙여넣기 (자동)
+    </button>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="status-text" id="statusText"></div>
+  </div>
+
+  <div class="slides-grid" id="slidesGrid"></div>
+
+  <script>
+    const TOTAL_SLIDES = 12;
+    const SERVER_URL = 'http://localhost:9876';
+
+    // Generate slide cards
+    const grid = document.getElementById('slidesGrid');
+    for (let i = 1; i <= TOTAL_SLIDES; i++) {
+      const num = String(i).padStart(2, '0');
+      const card = document.createElement('div');
+      card.className = 'slide-card';
+      card.id = `card-${num}`;
+      card.innerHTML = `
+        <div class="slide-preview">
+          <img src="${SERVER_URL}/slide_${num}.svg" alt="Slide ${num}" loading="lazy"/>
+        </div>
+        <div class="slide-info">
+          <span class="slide-label">Slide <span>${num}</span> / ${TOTAL_SLIDES}</span>
+          <button class="copy-btn" onclick="copySVG('${num}')">Copy SVG</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    }
+
+    async function fetchSVGContent(num) {
+      const resp = await fetch(`${SERVER_URL}/slide_${num}.svg`);
+      return await resp.text();
+    }
+
+    async function copySVG(num) {
+      try {
+        const svgContent = await fetchSVGContent(num);
+        
+        // Copy SVG as both text and image
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const clipboardItem = new ClipboardItem({
+          'text/plain': new Blob([svgContent], { type: 'text/plain' }),
+        });
+        
+        await navigator.clipboard.write([clipboardItem]);
+        
+        // Visual feedback
+        const card = document.getElementById(`card-${num}`);
+        const btn = card.querySelector('.copy-btn');
+        card.classList.add('copied');
+        btn.textContent = '✅ Copied!';
+        btn.classList.add('success');
+        
+        setTimeout(() => {
+          card.classList.remove('copied');
+          btn.textContent = 'Copy SVG';
+          btn.classList.remove('success');
+        }, 2000);
+        
+        return true;
+      } catch (err) {
+        // Fallback: textarea copy
+        try {
+          const svgContent = await fetchSVGContent(num);
+          const ta = document.createElement('textarea');
+          ta.value = svgContent;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          
+          const card = document.getElementById(`card-${num}`);
+          const btn = card.querySelector('.copy-btn');
+          card.classList.add('copied');
+          btn.textContent = '✅ Copied!';
+          btn.classList.add('success');
+          
+          setTimeout(() => {
+            card.classList.remove('copied');
+            btn.textContent = 'Copy SVG';
+            btn.classList.remove('success');
+          }, 2000);
+          return true;
+        } catch (e) {
+          alert('클립보드 복사 실패: ' + e.message);
+          return false;
+        }
+      }
+    }
+
+    async function copyAllSequentially() {
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+      const statusText = document.getElementById('statusText');
+      
+      progressBar.style.display = 'block';
+      
+      for (let i = 1; i <= TOTAL_SLIDES; i++) {
+        const num = String(i).padStart(2, '0');
+        statusText.textContent = `슬라이드 ${num} 복사 중... (Figma에서 ⌘V로 붙여넣기 하세요)`;
+        progressFill.style.width = `${(i / TOTAL_SLIDES) * 100}%`;
+        
+        await copySVG(num);
+        
+        // Wait for user to paste (3 seconds between slides)
+        if (i < TOTAL_SLIDES) {
+          statusText.textContent = `✅ 슬라이드 ${num} 복사됨! → Figma에서 ⌘V → 3초 후 다음 슬라이드...`;
+          await new Promise(r => setTimeout(r, 3000));
+        }
+      }
+      
+      statusText.textContent = `🎉 모든 ${TOTAL_SLIDES}장 완료! Figma에서 확인하세요.`;
+      progressFill.style.width = '100%';
+    }
+  </script>
+</body>
+</html>
