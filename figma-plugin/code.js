@@ -115,7 +115,7 @@ const THEMES = {
         },
         background: {
             type: 'solid',
-            color: { r: 1, g: 1, b: 1, a: 1 }
+            color: { r: 1, g: 1, b: 1 }
         },
         decorations: {
             circles: [],
@@ -138,7 +138,7 @@ const THEMES = {
         },
         background: {
             type: 'solid',
-            color: { r: 1, g: 1, b: 1, a: 1 }
+            color: { r: 1, g: 1, b: 1 }
         },
         decorations: {
             circles: [],       // 장식 원형 없음
