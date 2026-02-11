@@ -72,7 +72,7 @@ Markdown File  →  Node.js Server (port 9876)  →  Figma Plugin
 - Figma Plugin requires **Figma Desktop App** (not browser version)
 - Server port `9876` is hardcoded in `server.js` and `ui.html`
 - Chrome path hardcoded for Puppeteer: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` (macOS)
-- `manifest.json` network access restricted to `localhost:9876` and `cdn.jsdelivr.net`
+- `manifest.json` network access restricted to `localhost:9876`, `cdn.jsdelivr.net`, and `cdnjs.cloudflare.com`
 
 ## Development Workflow (필수)
 
