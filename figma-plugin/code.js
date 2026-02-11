@@ -134,7 +134,6 @@ const THEMES = {
             bodyText: { r: 0.2, g: 0.2, b: 0.2 },
             boldText: { r: 0.1, g: 0.1, b: 0.1 },
             uiText: { r: 0.4, g: 0.4, b: 0.4 },
-            leadText: { r: 0.29, g: 0.29, b: 0.29 },  // #4A4A4A
         },
         background: {
             type: 'solid',
@@ -164,14 +163,6 @@ const COLORS = THEMES[DEFAULT_THEME].colors;
 
 const SLIDE_W = 1920;
 const SLIDE_H = 1080;
-
-// ─── Layout Constants ─────────────────────────────────────────
-const LAYOUT = {
-    padding: { left: 80, top: 80, right: 80, bottom: 60 },
-    header: { y: 80 },
-    body: { y: 200 },
-    contentWidth: 1760  // 1920 - 80 - 80
-};
 
 // ─── Detect editor type once ──────────────────────────────────
 let isSlides = false;
@@ -383,90 +374,70 @@ function addLogo(parent) {
     parent.appendChild(t);
 }
 
-// ─── Build List ───────────────────────────────────────────────
-function buildList(tk, parent, colors, fontSize) {
-    var lf = figma.createFrame();
-    lf.name = "List";
-    lf.layoutMode = "VERTICAL";
-    lf.primaryAxisSizingMode = "AUTO";
-    lf.counterAxisSizingMode = "FIXED";
-    lf.resize(LAYOUT.contentWidth, 100);
-    lf.itemSpacing = 14;
-    lf.fills = [];
-
-    if (tk.items) {
-        for (var j = 0; j < tk.items.length; j++) {
-            var item = tk.items[j];
-            var iFrame = figma.createFrame();
-            iFrame.name = "List Item";
-            iFrame.layoutMode = "HORIZONTAL";
-            iFrame.primaryAxisSizingMode = "FIXED";
-            iFrame.counterAxisSizingMode = "AUTO";
-            iFrame.resize(LAYOUT.contentWidth - 40, 30);
-            iFrame.itemSpacing = 16;
-            iFrame.paddingLeft = 8;
-            iFrame.fills = [];
-
-            // Bullet
-            var bWrap = figma.createFrame();
-            bWrap.name = "BulletWrap";
-            bWrap.resize(10, 26);
-            bWrap.layoutMode = "VERTICAL";
-            bWrap.primaryAxisAlignItems = "CENTER";
-            bWrap.primaryAxisSizingMode = "FIXED";
-            bWrap.counterAxisSizingMode = "FIXED";
-            bWrap.fills = [];
-
-            var bullet = figma.createEllipse();
-            bullet.resize(8, 8);
-            bullet.fills = [{ type: "SOLID", color: colors.accent1 }];
-            bWrap.appendChild(bullet);
-            iFrame.appendChild(bWrap);
-
-            // Text
-            createRichText(item.text || "", fontSize, false, colors.bodyText, iFrame);
-            lf.appendChild(iFrame);
-        }
-    }
-    parent.appendChild(lf);
-}
-
 // ─── Process Tokens ───────────────────────────────────────────
-function processTokens(tokens, headerFrame, bodyFrame, idx, total) {
+function processTokens(tokens, frame, idx, total) {
     var isCover = (idx === 0);
     var isEnding = (idx === total - 1);
     var colors = getColors();
-    var isFirstParagraph = true;
 
     for (var i = 0; i < tokens.length; i++) {
         var tk = tokens[i];
 
-        if (tk.type === "heading" && tk.depth === 1) {
-            // 제목 → Header 영역
-            var fs = isCover || isEnding ? 52 : 44;
-            createRichText(tk.text || "", fs, true, colors.accent2, headerFrame);
-
-        } else if (tk.type === "heading" && tk.depth === 2) {
-            // 부제목 → Body 영역
-            createRichText(tk.text || "", 28, true, colors.subtitle, bodyFrame);
-
-        } else if (tk.type === "paragraph" && isFirstParagraph) {
-            // 첫 번째 paragraph → Header 영역 (리드 메시지)
-            var leadColor = colors.leadText || { r: 0.29, g: 0.29, b: 0.29 };
-            if (tk.text) {
-                createRichText(tk.text, 20, false, leadColor, headerFrame);
-            }
-            isFirstParagraph = false;
+        if (tk.type === "heading") {
+            var fs = tk.depth === 1 ? (isCover || isEnding ? 72 : 54) : 36;
+            var col = tk.depth === 1 ? colors.accent2 : colors.subtitle;
+            createRichText(tk.text || "", fs, true, col, frame);
 
         } else if (tk.type === "paragraph") {
-            // 나머지 paragraph → Body 영역
             if (tk.text) {
-                createRichText(tk.text, 18, false, colors.bodyText, bodyFrame);
+                createRichText(tk.text, 24, false, colors.bodyText, frame);
             }
 
         } else if (tk.type === "list") {
-            // 리스트 → Body 영역
-            buildList(tk, bodyFrame, colors, 20);
+            var lf = figma.createFrame();
+            lf.name = "List";
+            lf.layoutMode = "VERTICAL";
+            lf.primaryAxisSizingMode = "AUTO";
+            lf.counterAxisSizingMode = "FIXED";
+            lf.resize(SLIDE_W - 200, 100);
+            lf.itemSpacing = 12;
+            lf.fills = [];
+
+            if (tk.items) {
+                for (var j = 0; j < tk.items.length; j++) {
+                    var item = tk.items[j];
+                    var iFrame = figma.createFrame();
+                    iFrame.name = "List Item";
+                    iFrame.layoutMode = "HORIZONTAL";
+                    iFrame.primaryAxisSizingMode = "FIXED";
+                    iFrame.counterAxisSizingMode = "AUTO";
+                    iFrame.resize(SLIDE_W - 240, 30);
+                    iFrame.itemSpacing = 16;
+                    iFrame.paddingLeft = 8;
+                    iFrame.fills = [];
+
+                    // Bullet
+                    var bWrap = figma.createFrame();
+                    bWrap.name = "BulletWrap";
+                    bWrap.resize(10, 30);
+                    bWrap.layoutMode = "VERTICAL";
+                    bWrap.primaryAxisAlignItems = "CENTER";
+                    bWrap.primaryAxisSizingMode = "FIXED";
+                    bWrap.counterAxisSizingMode = "FIXED";
+                    bWrap.fills = [];
+
+                    var bullet = figma.createEllipse();
+                    bullet.resize(10, 10);
+                    bullet.fills = [{ type: "SOLID", color: colors.accent1 }];
+                    bWrap.appendChild(bullet);
+                    iFrame.appendChild(bWrap);
+
+                    // Text
+                    createRichText(item.text || "", 26, false, colors.bodyText, iFrame);
+                    lf.appendChild(iFrame);
+                }
+            }
+            frame.appendChild(lf);
         }
         // 'space' tokens ignored (Auto Layout handles spacing)
     }
@@ -507,59 +478,31 @@ function buildSlideFrame(slideData, index, total) {
         addAccentBar(bg);
     }
 
+    // Content area (Auto Layout)
+    var content = figma.createFrame();
+    content.name = "Content";
+    content.resize(SLIDE_W - 200, SLIDE_H - 200);
+    content.x = 100;
+    content.y = 80;
+    content.layoutMode = "VERTICAL";
+    content.primaryAxisSizingMode = "FIXED";
+    content.counterAxisSizingMode = "FIXED";
+    content.itemSpacing = 24;
+    content.fills = [];
+
     if (isCover || isEnding) {
-        // 커버/엔딩: 기존 중앙 정렬 유지
-        var content = figma.createFrame();
-        content.name = "Content";
-        content.resize(SLIDE_W - 200, SLIDE_H - 200);
-        content.x = 100;
-        content.y = 80;
-        content.layoutMode = "VERTICAL";
-        content.primaryAxisSizingMode = "FIXED";
-        content.counterAxisSizingMode = "FIXED";
-        content.itemSpacing = 24;
-        content.fills = [];
         content.primaryAxisAlignItems = "CENTER";
         content.counterAxisAlignItems = "CENTER";
-
-        if (slideData && slideData.tokens) {
-            // 커버/엔딩은 content를 header와 body 모두에 전달
-            processTokens(slideData.tokens, content, content, index, total);
-        }
-
-        bg.appendChild(content);
     } else {
-        // 일반 슬라이드: Header + Body 분리
-        var header = figma.createFrame();
-        header.name = "Header";
-        header.x = LAYOUT.padding.left;
-        header.y = LAYOUT.header.y;
-        header.resize(LAYOUT.contentWidth, 100);
-        header.layoutMode = "VERTICAL";
-        header.itemSpacing = 12;
-        header.fills = [];
-        header.primaryAxisSizingMode = "AUTO";
-        header.counterAxisSizingMode = "FIXED";
-
-        var body = figma.createFrame();
-        body.name = "Body";
-        body.x = LAYOUT.padding.left;
-        body.y = LAYOUT.body.y;
-        body.resize(LAYOUT.contentWidth, SLIDE_H - LAYOUT.body.y - LAYOUT.padding.bottom);
-        body.layoutMode = "VERTICAL";
-        body.itemSpacing = 14;
-        body.fills = [];
-        body.primaryAxisSizingMode = "AUTO";
-        body.counterAxisSizingMode = "FIXED";
-
-        if (slideData && slideData.tokens) {
-            processTokens(slideData.tokens, header, body, index, total);
-        }
-
-        bg.appendChild(header);
-        bg.appendChild(body);
+        content.primaryAxisAlignItems = "CENTER";
+        content.counterAxisAlignItems = "MIN";
     }
 
+    if (slideData && slideData.tokens) {
+        processTokens(slideData.tokens, content, index, total);
+    }
+
+    bg.appendChild(content);
     addSlideNumber(bg, index, total);
     addLogo(bg);
 

@@ -42,51 +42,21 @@ Markdown File  →  Node.js Server (port 9876)  →  Figma Plugin
    - `ui.html`: Fetches JSON from server OR parses pasted markdown directly (uses marked.js via CDN)
    - `code.js`: Converts AST tokens to Figma native nodes via `processTokens()`
 
-### Slide Layout Structure
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                     1920×1080   │
-│  x:80, y:80                                                     │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  HEADER 영역 (height: auto)                               │   │
-│  │  • 제목: 44px ExtraBold, 포인트 컬러                       │   │
-│  │  • 리드 메시지: 20px Medium, 진한 회색 (#4A4A4A)           │   │
-│  │  • 간격: 12px                                             │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                   │
-│  x:80, y:200 (고정)                                              │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  BODY 영역                                                 │   │
-│  │  • 리스트 아이템: 20px                                     │   │
-│  │  • 추가 paragraph: 18px                                    │   │
-│  │  • 간격: 14px                                              │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                   │
-│  DAKER.ai                                        01 / 12        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-- **커버/엔딩 슬라이드**: 중앙 정렬, 제목 52px
-- **일반 슬라이드**: Header + Body 분리, 좌측 상단 정렬
-
 ### Token → Figma Mapping (code.js)
 
 | Markdown Token | Figma Creation | Style |
 |---|---|---|
-| `heading (depth:1)` | Header 영역 `figma.createText()` | 44px (커버/엔딩: 52px), ExtraBold, accent2 color |
-| `heading (depth:2)` | Body 영역 `figma.createText()` | 28px, Bold, subtitle color |
-| `paragraph` (첫번째) | Header 영역 `figma.createText()` | 20px, Medium, leadText color (#4A4A4A) |
-| `paragraph` (이후) | Body 영역 `figma.createText()` | 18px, Medium, bodyText color |
-| `list` | Body 영역 `figma.createFrame()` with Auto Layout | vertical, itemSpacing: 14px |
-| `list_item` | Frame with Ellipse (bullet) + TextNode | 8px circle + 20px text |
+| `heading (depth:1)` | `figma.createText()` | 54-72px, Bold, accent2 color |
+| `heading (depth:2)` | `figma.createText()` | 36px, Bold, subtitle color |
+| `paragraph` | `figma.createText()` | 24px, Regular, bodyText color |
+| `list` | `figma.createFrame()` with Auto Layout | vertical, itemSpacing: 12px |
+| `list_item` | Frame with Ellipse (bullet) + TextNode | 10px circle + 26px text |
 
 ### Key Functions
 
 - `md-to-slides.js:parseMarkdownToJSON()` — Splits markdown by `\n---\n`, returns slides with tokens
-- `code.js:buildSlideFrame()` — Creates 1920×1080 frame with Header/Body 분리 레이아웃
-- `code.js:processTokens()` — 토큰을 Header/Body 영역에 분배하여 변환
-- `code.js:buildList()` — 리스트 프레임 생성 (20px 텍스트, 14px 간격)
+- `code.js:buildSlideFrame()` — Creates 1920×1080 frame with gradient background and decorations
+- `code.js:processTokens()` — Main token-to-node conversion loop
 - `code.js:createRichText()` — Handles inline bold styling via `setRangeFontName()`
 
 ## Design Decisions
