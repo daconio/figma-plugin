@@ -10,11 +10,13 @@
     ],
     "networkAccess": {
         "allowedDomains": [
-            "https://cdn.jsdelivr.net"
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com"
         ],
         "devAllowedDomains": [
             "http://localhost:9876",
-            "https://cdn.jsdelivr.net"
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com"
         ],
         "reasoning": "Fetches marked.js for Markdown parsing and optionally connects to a local development server for slide data"
     }
