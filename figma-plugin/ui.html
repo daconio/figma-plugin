@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <!-- marked.js for local Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.0/marked.min.js"></script>
+    <!-- PDF.js for client-side PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <style>
         * {
             margin: 0;
@@ -277,6 +283,90 @@
             margin-top: 6px;
         }
 
+        /* PDF upload area */
+        .pdf-upload-area {
+            border: 2px dashed #313244;
+            border-radius: 8px;
+            padding: 32px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #181825;
+            margin-bottom: 12px;
+        }
+
+        .pdf-upload-area:hover,
+        .pdf-upload-area.drag-over {
+            border-color: #89b4fa;
+            background: #1e1e2e;
+        }
+
+        .pdf-upload-area.has-file {
+            border-color: #a6e3a1;
+            border-style: solid;
+        }
+
+        .pdf-upload-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .pdf-upload-text {
+            font-size: 12px;
+            color: #6c7086;
+        }
+
+        .pdf-file-info {
+            display: none;
+            font-size: 12px;
+            color: #a6e3a1;
+            margin-top: 8px;
+        }
+
+        /* PDF background color selector */
+        .pdf-bg-selector {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pdf-bg-selector label {
+            font-size: 11px;
+            color: #6c7086;
+            white-space: nowrap;
+        }
+
+        .pdf-bg-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pdf-bg-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #313244;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            position: relative;
+        }
+
+        .pdf-bg-btn:hover {
+            border-color: #6c7086;
+            transform: scale(1.1);
+        }
+
+        .pdf-bg-btn.active {
+            border-color: #89b4fa;
+            box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.3);
+        }
+
+        .pdf-bg-btn[data-bg="transparent"] {
+            background: repeating-conic-gradient(#45475a 0% 25%, #313244 0% 50%) 50% / 12px 12px;
+        }
+
         /* Font size settings */
         .font-settings {
             margin-bottom: 12px;
@@ -333,7 +423,7 @@
 
 <body>
     <h1>🚀 DAKER Markdown Slide Creator</h1>
-    <p class="subtitle">마크다운을 편집 가능한 Figma Slide로 자동 생성합니다</p>
+    <p class="subtitle">마크다운 또는 PDF를 Figma Slide로 자동 생성합니다</p>
 
     <!-- Theme Selector -->
     <div class="theme-selector">
@@ -382,6 +472,7 @@
     <div class="tabs">
         <button class="tab active" onclick="switchTab('paste')">📝 직접 입력</button>
         <button class="tab" onclick="switchTab('server')">🌐 서버 연동</button>
+        <button class="tab" onclick="switchTab('pdf')">📄 PDF 업로드</button>
     </div>
 
     <!-- Tab 1: Direct Paste -->
@@ -411,6 +502,26 @@
         </div>
     </div>
 
+    <!-- Tab 3: PDF Upload -->
+    <div class="tab-content" id="tab-pdf">
+        <div class="pdf-upload-area" id="pdfUploadArea" onclick="document.getElementById('pdfFileInput').click()">
+            <div class="pdf-upload-icon">📄</div>
+            <div class="pdf-upload-text">클릭 또는 드래그하여 PDF 파일을 선택하세요</div>
+            <div class="pdf-file-info" id="pdfFileInfo"></div>
+        </div>
+        <input type="file" id="pdfFileInput" accept=".pdf" style="display:none" onchange="handlePdfFile(event)" />
+        <div class="pdf-bg-selector" id="pdfBgSelector">
+            <label>배경색:</label>
+            <div class="pdf-bg-options">
+                <button class="pdf-bg-btn active" data-bg="#ffffff" style="background:#ffffff" title="흰색"></button>
+                <button class="pdf-bg-btn" data-bg="transparent" title="투명 (원본)"></button>
+                <button class="pdf-bg-btn" data-bg="#000000" style="background:#000000" title="검정"></button>
+                <button class="pdf-bg-btn" data-bg="#f5f5f5" style="background:#f5f5f5" title="연한 회색"></button>
+            </div>
+        </div>
+        <p class="hint">💡 각 PDF 페이지가 하나의 슬라이드로 생성됩니다</p>
+    </div>
+
     <button class="import-btn" id="importBtn" onclick="startImport()">
         📥 슬라이드 생성
     </button>
@@ -434,7 +545,14 @@
         let slideQueue = [];
         let currentIndex = 0;
         let totalSlides = 0;
-        let currentMode = 'paste'; // 'paste' or 'server'
+        let currentMode = 'paste'; // 'paste', 'server', or 'pdf'
+
+        // PDF state
+        let pdfDoc = null;
+        let pdfFileName = '';
+        let pdfTotalPages = 0;
+        let pdfCurrentPage = 0;
+        const PDF_RENDER_SCALE = 2.0;
 
         // Theme preview colors (matching code.js themes)
         const THEME_PREVIEWS = {
@@ -483,9 +601,144 @@
             if (mode === 'paste') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('tab-paste').classList.add('active');
-            } else {
+            } else if (mode === 'server') {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('tab-server').classList.add('active');
+            } else if (mode === 'pdf') {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                document.getElementById('tab-pdf').classList.add('active');
+            }
+        }
+
+        // ─── PDF Handling ─────────────────────────────────────────
+        async function handlePdfFile(event) {
+            const file = event.target.files[0];
+            if (file) loadPdfFromFile(file);
+        }
+
+        async function loadPdfFromFile(file) {
+            pdfFileName = file.name;
+            const fileInfo = document.getElementById('pdfFileInfo');
+            const uploadArea = document.getElementById('pdfUploadArea');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                pdfTotalPages = pdfDoc.numPages;
+
+                fileInfo.style.display = 'block';
+                fileInfo.textContent = `📄 ${pdfFileName} — ${pdfTotalPages}페이지`;
+                uploadArea.classList.add('has-file');
+                uploadArea.querySelector('.pdf-upload-text').textContent = pdfFileName;
+            } catch (err) {
+                fileInfo.style.display = 'block';
+                fileInfo.textContent = `❌ PDF 로드 실패: ${err.message}`;
+                fileInfo.style.color = '#f38ba8';
+                pdfDoc = null;
+            }
+        }
+
+        // ─── Drag & Drop ─────────────────────────────────────────
+        (function setupDragAndDrop() {
+            const uploadArea = document.getElementById('pdfUploadArea');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') {
+                    loadPdfFromFile(file);
+                }
+            });
+        })();
+
+        // ─── PDF Background Color ────────────────────────────────
+        function getSelectedPdfBgColor() {
+            const activeBtn = document.querySelector('.pdf-bg-btn.active');
+            return activeBtn ? activeBtn.getAttribute('data-bg') : '#ffffff';
+        }
+
+        (function setupPdfBgButtons() {
+            document.querySelectorAll('.pdf-bg-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.pdf-bg-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+        })();
+
+        async function renderPdfPageToUint8Array(pageNum) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            // 배경색 적용 (transparent가 아닌 경우)
+            const bgColor = getSelectedPdfBgColor();
+            if (bgColor !== 'transparent') {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        resolve(new Uint8Array(reader.result));
+                    };
+                    reader.readAsArrayBuffer(blob);
+                }, 'image/png');
+            });
+        }
+
+        async function sendNextPdfPage() {
+            if (pdfCurrentPage >= pdfTotalPages) {
+                parent.postMessage({
+                    pluginMessage: { type: 'all-done', count: pdfTotalPages }
+                }, '*');
+                return;
+            }
+
+            const pageNum = pdfCurrentPage + 1; // PDF.js is 1-indexed
+            addLog(`📄 PDF 페이지 ${pageNum}/${pdfTotalPages} 렌더링 중...`, 'info');
+
+            try {
+                const imageData = await renderPdfPageToUint8Array(pageNum);
+                addLog(`🎨 슬라이드 ${pageNum}/${pdfTotalPages} 생성 중...`, 'info');
+
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'import-pdf-page',
+                        index: pdfCurrentPage,
+                        total: pdfTotalPages,
+                        imageData: Array.from(imageData),
+                        fileName: pdfFileName,
+                        bgColor: getSelectedPdfBgColor()
+                    }
+                }, '*');
+            } catch (err) {
+                addLog(`❌ 페이지 ${pageNum} 렌더링 오류: ${err.message}`, 'error');
+                pdfCurrentPage++;
+                setTimeout(() => sendNextPdfPage(), 150);
             }
         }
 
@@ -519,6 +772,18 @@
             PROGRESS_FILL.style.width = '0%';
 
             try {
+                if (currentMode === 'pdf') {
+                    // PDF MODE
+                    if (!pdfDoc) throw new Error('PDF 파일을 먼저 선택해주세요.');
+
+                    addLog(`📄 PDF 파일: ${pdfFileName} (${pdfTotalPages}페이지)`, 'info');
+                    addLog(`🎨 Figma에 슬라이드 생성 시작...`, 'info');
+                    IMPORT_BTN.textContent = '🎨 슬라이드 생성 중...';
+                    pdfCurrentPage = 0;
+                    sendNextPdfPage();
+                    return;
+                }
+
                 let slides;
 
                 if (currentMode === 'paste') {
@@ -604,14 +869,24 @@
                 const pct = (msg.current / msg.total) * 100;
                 PROGRESS_FILL.style.width = `${pct}%`;
                 addLog(`✅ 슬라이드 ${msg.current}/${msg.total} 생성 완료`, 'success');
-                currentIndex++;
-                setTimeout(() => sendNextSlide(), 150);
+                if (currentMode === 'pdf') {
+                    pdfCurrentPage++;
+                    setTimeout(() => sendNextPdfPage(), 150);
+                } else {
+                    currentIndex++;
+                    setTimeout(() => sendNextSlide(), 150);
+                }
             }
 
             if (msg.type === 'error') {
                 addLog(`❌ 슬라이드 ${msg.slide} 오류: ${msg.message}`, 'error');
-                currentIndex++;
-                setTimeout(() => sendNextSlide(), 150);
+                if (currentMode === 'pdf') {
+                    pdfCurrentPage++;
+                    setTimeout(() => sendNextPdfPage(), 150);
+                } else {
+                    currentIndex++;
+                    setTimeout(() => sendNextSlide(), 150);
+                }
             }
 
             if (msg.type === 'done') {

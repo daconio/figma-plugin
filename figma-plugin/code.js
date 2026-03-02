@@ -6,7 +6,7 @@
 //                        + styled Frame inside (for gradient/deco/content)
 //   Figma Design mode → figma.createFrame() laid out horizontally
 
-figma.showUI(__html__, { width: 520, height: 560 });
+figma.showUI(__html__, { width: 520, height: 600 });
 
 // ─── Theme Definitions ────────────────────────────────────────
 const THEMES = {
@@ -539,9 +539,72 @@ async function createSlide(slideData, index, total) {
     }
 }
 
+// ─── Hex to Figma RGB Helper ─────────────────────────────────
+function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    return {
+        r: parseInt(hex.substring(0, 2), 16) / 255,
+        g: parseInt(hex.substring(2, 4), 16) / 255,
+        b: parseInt(hex.substring(4, 6), 16) / 255
+    };
+}
+
+// ─── PDF Slide Creation ──────────────────────────────────────
+async function createPdfSlide(imageData, index, total, bgColor) {
+    var image = figma.createImage(new Uint8Array(imageData));
+
+    var fills = [];
+    // 배경색 레이어 (transparent가 아닌 경우)
+    if (bgColor && bgColor !== 'transparent') {
+        fills.push({
+            type: "SOLID",
+            color: hexToRgb(bgColor)
+        });
+    }
+    // 이미지 레이어
+    fills.push({
+        type: "IMAGE",
+        imageHash: image.hash,
+        scaleMode: "FIT"
+    });
+
+    if (isSlides) {
+        // === FIGMA SLIDES MODE ===
+        var slideNode = figma.createSlide();
+        slideNode.name = "PDF Slide " + String(index + 1).padStart(2, "0");
+
+        var imgFrame = figma.createFrame();
+        imgFrame.name = "PDF Page";
+        imgFrame.resize(SLIDE_W, SLIDE_H);
+        imgFrame.x = 0;
+        imgFrame.y = 0;
+        imgFrame.fills = fills;
+        slideNode.appendChild(imgFrame);
+    } else {
+        // === FIGMA DESIGN MODE ===
+        var frame = figma.createFrame();
+        frame.name = "PDF Slide " + String(index + 1).padStart(2, "0");
+        frame.resize(SLIDE_W, SLIDE_H);
+        frame.x = index * (SLIDE_W + 100);
+        frame.y = 0;
+        frame.fills = fills;
+    }
+}
+
 // ─── Message Handler ──────────────────────────────────────────
 figma.ui.onmessage = async function (msg) {
     try {
+        if (msg.type === "import-pdf-page") {
+            await createPdfSlide(msg.imageData, msg.index, msg.total, msg.bgColor);
+
+            figma.ui.postMessage({
+                type: "progress",
+                current: msg.index + 1,
+                total: msg.total
+            });
+            return;
+        }
+
         if (msg.type === "import-slide") {
             // Apply theme if provided
             if (msg.theme && THEMES[msg.theme]) {

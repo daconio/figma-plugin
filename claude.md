@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DAKER Slide Automation** — Markdown → Figma 슬라이드 자동 생성 파이프라인
+**DAKER Slide Automation** — Markdown/PDF → Figma 슬라이드 자동 생성 파이프라인
 
 ## Commands
 
@@ -39,8 +39,16 @@ Markdown File  →  Node.js Server (port 9876)  →  Figma Plugin
    - `md-to-slides.js`: `parseMarkdownToJSON(md)` uses `marked.lexer()` to produce AST tokens
    - `server.js`: `/api/data` endpoint serves `{ slides: [...], total: N }`
 3. **Plugin** (`figma-plugin/`):
-   - `ui.html`: Fetches JSON from server OR parses pasted markdown directly (uses marked.js via CDN)
-   - `code.js`: Converts AST tokens to Figma native nodes via `processTokens()`
+   - `ui.html`: Fetches JSON from server OR parses pasted markdown directly (uses marked.js via CDN) OR uploads PDF (uses PDF.js via CDN)
+   - `code.js`: Converts AST tokens to Figma native nodes via `processTokens()`, or PDF pages to image slides via `createPdfSlide()`
+
+### PDF → Figma Flow
+
+1. **UI** (`ui.html`): PDF.js (CDN) renders each page to canvas → PNG Uint8Array (선택된 배경색을 canvas에 먼저 칠함)
+2. **Message**: `import-pdf-page` sends image data + `bgColor` per page to `code.js`
+3. **Plugin** (`code.js`): `createPdfSlide()` creates 1920×1080 frame with SOLID fill (배경색) + IMAGE fill (scaleMode: "FIT")
+4. Supports both Figma Slides mode (`figma.createSlide()`) and Design mode (horizontal layout)
+5. **배경색 옵션**: 흰색(기본), 투명, 검정, 연한 회색 — UI 버튼으로 선택
 
 ### Token → Figma Mapping (code.js)
 
@@ -58,6 +66,8 @@ Markdown File  →  Node.js Server (port 9876)  →  Figma Plugin
 - `code.js:buildSlideFrame()` — Creates 1920×1080 frame with gradient background and decorations
 - `code.js:processTokens()` — Main token-to-node conversion loop
 - `code.js:createRichText()` — Handles inline bold styling via `setRangeFontName()`
+- `code.js:createPdfSlide()` — Creates 1920×1080 frame with optional SOLID background + IMAGE fill from PDF page PNG data
+- `code.js:hexToRgb()` — Converts hex color string to Figma RGB object (0-1 range)
 
 ## Design Decisions
 
@@ -65,7 +75,8 @@ Markdown File  →  Node.js Server (port 9876)  →  Figma Plugin
 - **Dual API endpoints**: `/api/data` (active, JSON AST) and `/api/slides` (legacy, SVG list) both maintained
 - **Fonts**: Inter (fallback) + Noto Sans KR; loaded via `figma.loadFontAsync()`
 - **Slide dimensions**: 1920×1080 (16:9)
-- **Plugin UI tabs**: Direct paste mode OR server fetch mode
+- **Plugin UI tabs**: Direct paste mode, server fetch mode, OR PDF upload mode
+- **PDF rendering**: PDF.js (Mozilla) via CDN, render scale 2.0, PNG format, FIT scaleMode for non-16:9 PDFs
 
 ## Constraints
 
