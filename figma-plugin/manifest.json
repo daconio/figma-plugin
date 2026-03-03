@@ -1,6 +1,6 @@
 {
     "name": "DAKER Markdown Slide Creator",
-    "id": "daker-markdown-slide-creator",
+    "id": "1610456428555500297",
     "api": "1.0.0",
     "main": "code.js",
     "ui": "ui.html",
@@ -8,6 +8,7 @@
         "figma",
         "slides"
     ],
+    "documentAccess": "dynamic-page",
     "networkAccess": {
         "allowedDomains": [
             "https://cdn.jsdelivr.net",
